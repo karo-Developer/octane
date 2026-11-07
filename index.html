@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OCTANE Z | Next-Gen Fuel & Lounge Experience</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Space Grotesk & Syne -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brandGold: '#F59E0B',
+                        brandAmber: '#D97706',
+                        brandYellow: '#FBBF24',
+                        lightBg: '#F8FAFC',
+                        cardLight: 'rgba(255, 255, 255, 0.9)',
+                        slateDark: '#0F172A',
+                    },
+                    fontFamily: {
+                        syne: ['Syne', 'sans-serif'],
+                        space: ['Space Grotesk', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #F8FAFC;
+            color: #1E293B;
+            font-family: 'Space Grotesk', sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* Fluid Stream Canvas */
+        #fluid-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 30;
+        }
+
+        /* Glassmorphic panel styles */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(245, 158, 11, 0.25);
+            box-shadow: 0 15px 35px -5px rgba(15, 23, 42, 0.05), 0 5px 15px -3px rgba(245, 158, 11, 0.05);
+        }
+
+        .glass-panel-hover {
+            transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .glass-panel-hover:hover {
+            border-color: rgba(245, 158, 11, 0.7);
+            box-shadow: 0 25px 50px -12px rgba(245, 158, 11, 0.25);
+            transform: translateY(-5px);
+        }
+
+        .gold-gradient-text {
+            background: linear-gradient(135deg, #D97706 0%, #F59E0B 50%, #B45309 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Glass Triangle Container */
+        .triangle-container {
+            position: absolute;
+            width: 440px;
+            height: 440px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 0;
+        }
+
+        .glass-triangle-shape {
+            width: 360px;
+            height: 380px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.7), rgba(254, 243, 199, 0.35));
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            clip-path: polygon(50% 0%, 100% 90%, 0% 90%);
+            border: 2px solid rgba(245, 158, 11, 0.6);
+            filter: drop-shadow(0 20px 30px rgba(245, 158, 11, 0.2));
+            animation: triangleGlow 6s ease-in-out infinite alternate;
+        }
+
+        @keyframes triangleGlow {
+            0% { transform: scale(1) rotate(0deg); filter: drop-shadow(0 15px 25px rgba(245, 158, 11, 0.25)); }
+            100% { transform: scale(1.05) rotate(2deg); filter: drop-shadow(0 25px 45px rgba(245, 158, 11, 0.45)); }
+        }
+
+        @keyframes floatSlow {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-12px); }
+        }
+
+        .floating-element {
+            animation: floatSlow 5s ease-in-out infinite;
+        }
+
+        /* Wave Reservoir Animations */
+        @keyframes waveMotion {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        .wave-layer-1 {
+            animation: waveMotion 12s linear infinite;
+        }
+        .wave-layer-2 {
+            animation: waveMotion 7s linear infinite reverse;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #F1F5F9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #F59E0B;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="relative bg-slate-50 text-slate-800">
+
+    <!-- Fluid Stream Canvas (Renders pouring petrol terminating at liquid-tank) -->
+    <canvas id="fluid-canvas"></canvas>
+
+    <!-- Top Navigation Header -->
+    <nav class="fixed top-0 left-0 w-full z-50 glass-panel border-b border-amber-200/60 py-4 px-6 md:px-12 flex justify-between items-center">
+        <a href="#" class="flex items-center gap-3 group">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brandYellow via-brandGold to-brandAmber flex items-center justify-center text-slate-950 font-syne font-extrabold text-xl shadow-md group-hover:scale-105 transition-transform">
+                Z
+            </div>
+            <span class="font-syne text-2xl font-extrabold tracking-wider text-slate-900">OCTANE <span class="text-brandGold">Z</span></span>
+        </a>
+
+        <div class="hidden md:flex items-center gap-8 text-xs uppercase tracking-widest text-slate-600 font-bold">
+            <a href="#about" class="hover:text-brandGold transition-colors">Manifesto</a>
+            <a href="#flavors" class="hover:text-brandGold transition-colors">Fuel Matrix</a>
+            <a href="#calc" class="hover:text-brandGold transition-colors">Vibe Calculator</a>
+            <a href="#locator" class="hover:text-brandGold transition-colors">Hub Locator</a>
+        </div>
+
+        <a href="#locator" class="px-6 py-2.5 rounded-full bg-gradient-to-r from-brandYellow via-brandGold to-brandAmber text-slate-950 font-extrabold text-xs tracking-wider shadow-md hover:shadow-lg hover:scale-105 transition-all">
+            FIND A HUB
+        </a>
+    </nav>
+
+    <!-- HERO SECTION -->
+    <section class="relative min-h-screen pt-32 pb-20 px-6 md:px-12 flex flex-col justify-center items-center overflow-hidden bg-gradient-to-b from-white via-slate-50 to-amber-50/30">
+        <!-- Ambient Radial Backlight -->
+        <div class="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[650px] h-[650px] bg-amber-200/30 rounded-full blur-[140px] pointer-events-none"></div>
+
+        <div class="max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-12 items-center z-20">
+            <!-- Left Copy Section -->
+            <div class="lg:col-span-7 text-center lg:text-left space-y-6">
+                <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-700 text-xs uppercase tracking-widest font-bold">
+                    <span class="w-2.5 h-2.5 rounded-full bg-brandGold animate-ping"></span>
+                    Next Gen Energy & Chill Hub
+                </div>
+
+                <h1 class="font-syne text-5xl sm:text-6xl md:text-7xl xl:text-8xl font-extrabold leading-[0.95] text-slate-900">
+                    PURE ENERGY.<br>
+                    <span class="gold-gradient-text">ZERO BORING.</span>
+                </h1>
+
+                <p class="text-lg md:text-xl text-slate-600 max-w-xl mx-auto lg:mx-0 font-normal leading-relaxed">
+                    We redefined the gas station experience. Hyper-refined high-performance petrol, ultra-fast EV supercharging, cold brew lounges, and premium engine vitality formulas.
+                </p>
+
+                <div class="flex flex-wrap items-center justify-center lg:justify-start gap-4 pt-4">
+                    <a href="#flavors" class="px-8 py-4 rounded-xl bg-gradient-to-r from-brandYellow via-brandGold to-brandAmber text-slate-950 font-extrabold text-sm tracking-wider shadow-lg hover:scale-105 transition-transform flex items-center gap-3">
+                        EXPLORE THE MATRIX <i class="fa-solid font-bold fa-arrow-right"></i>
+                    </a>
+                    <a href="#about" class="px-8 py-4 rounded-xl glass-panel text-slate-800 font-bold text-sm hover:border-brandGold transition-colors">
+                        OUR MANIFESTO
+                    </a>
+                </div>
+
+                <!-- Stats Bar -->
+                <div class="pt-8 border-t border-slate-200 grid grid-cols-3 gap-4 text-center lg:text-left">
+                    <div>
+                        <div class="text-3xl font-extrabold text-slate-900 font-syne">99.9%</div>
+                        <div class="text-xs text-slate-500 font-bold uppercase tracking-wider">Engine Purity</div>
+                    </div>
+                    <div>
+                        <div class="text-3xl font-extrabold text-brandAmber font-syne">15 MIN</div>
+                        <div class="text-xs text-slate-500 font-bold uppercase tracking-wider">Avg Lounge Stay</div>
+                    </div>
+                    <div>
+                        <div class="text-3xl font-extrabold text-amber-600 font-syne">100%</div>
+                        <div class="text-xs text-slate-500 font-bold uppercase tracking-wider">Good Vibes Only</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Hero Visual Showcase -->
+            <div class="lg:col-span-5 relative flex justify-center items-center">
+                <!-- Glowing Glass Geometric Triangle Overlay -->
+                <div class="triangle-container">
+                    <div class="glass-triangle-shape"></div>
+                </div>
+
+                <!-- Hero Bottle Display Card -->
+                <div class="relative z-10 w-full max-w-md aspect-square rounded-3xl overflow-hidden glass-panel border-2 border-brandGold/60 p-3 shadow-2xl floating-element">
+                    <div class="relative w-full h-full rounded-2xl overflow-hidden bg-gradient-to-b from-slate-900 via-slate-800 to-amber-950 flex items-center justify-center group">
+                        
+                        <!-- High-Resolution Graphic Visual Asset (Embedded Canvas/Image Fallback) -->
+                        <div class="relative w-full h-full flex items-center justify-center p-4">
+                            <svg class="w-full h-full max-w-[340px] max-h-[340px] drop-shadow-[0_20px_35px_rgba(245,158,11,0.5)] transform group-hover:scale-105 transition-transform duration-500" viewBox="0 0 500 500" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <!-- Background Garage Glow -->
+                                <circle cx="250" cy="250" r="200" fill="url(#bgGlow)" opacity="0.6"/>
+                                <!-- Golden Splash Stream Behind Bottle -->
+                                <path d="M120,200 C80,100 220,40 260,110 C300,180 420,120 400,260 C380,400 280,450 180,420 C100,400 60,300 120,200 Z" fill="url(#goldLiquid)" opacity="0.85"/>
+                                <!-- Spark Plugs & Pistons Floating -->
+                                <rect x="90" y="160" width="20" height="40" rx="4" fill="#E2E8F0" transform="rotate(-25 90 160)"/>
+                                <circle cx="100" cy="150" r="8" fill="#F59E0B"/>
+                                <rect x="380" y="280" width="24" height="45" rx="4" fill="#CBD5E1" transform="rotate(30 380 280)"/>
+                                <!-- Main Blue Oil Container -->
+                                <path d="M180,150 L280,130 C295,127 310,138 312,153 L340,360 C343,380 327,398 307,398 L190,398 C170,398 154,382 152,362 L160,170 C161,158 169,151 180,150 Z" fill="url(#blueBottle)" stroke="#60A5FA" stroke-width="3"/>
+                                <!-- Bottle Cap -->
+                                <rect x="210" y="95" width="55" height="38" rx="6" fill="#1E40AF" stroke="#93C5FD" stroke-width="2"/>
+                                <!-- Liquid Flow Spout Header (Emitter Point) -->
+                                <circle cx="237" cy="95" r="12" fill="#FBBF24"/>
+                                <!-- Formula Front Label -->
+                                <rect x="180" y="210" width="130" height="150" rx="10" fill="#0F172A" stroke="#F59E0B" stroke-width="2"/>
+                                <path d="M195,230 L245,300 L295,230" stroke="#EF4444" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M205,230 L245,285 L285,230" stroke="#3B82F6" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+                                <text x="245" y="335" font-family="Syne, sans-serif" font-weight="800" font-size="16" fill="#FFFFFF" text-anchor="middle">OCTANE Z</text>
+                                <text x="245" y="350" font-family="Space Grotesk, sans-serif" font-weight="700" font-size="11" fill="#F59E0B" text-anchor="middle">20W-50 HYPER-BLEND</text>
+
+                                <!-- Gradients Definitions -->
+                                <defs>
+                                    <radialGradient id="bgGlow" cx="50%" cy="50%" r="50%">
+                                        <stop offset="0%" stop-color="#F59E0B"/>
+                                        <stop offset="100%" stop-color="#0F172A" stop-opacity="0"/>
+                                    </radialGradient>
+                                    <linearGradient id="goldLiquid" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" stop-color="#FEF08A"/>
+                                        <stop offset="50%" stop-color="#F59E0B"/>
+                                        <stop offset="100%" stop-color="#B45309"/>
+                                    </linearGradient>
+                                    <linearGradient id="blueBottle" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" stop-color="#2563EB"/>
+                                        <stop offset="50%" stop-color="#1E40AF"/>
+                                        <stop offset="100%" stop-color="#1E3A8A"/>
+                                    </linearGradient>
+                                </defs>
+                            </svg>
+                        </div>
+                        
+                        <!-- Floating Badge -->
+                        <div class="absolute bottom-4 left-4 right-4 bg-white/95 backdrop-blur-md p-3.5 rounded-xl border border-amber-300 flex items-center justify-between shadow-lg">
+                            <div>
+                                <div class="text-[10px] text-amber-700 uppercase font-extrabold tracking-widest">Master Formula #01</div>
+                                <div class="text-xs font-extrabold text-slate-900">Synthetix Hyper-Stream 20W-50</div>
+                            </div>
+                            <div class="w-8 h-8 rounded-full bg-amber-500/20 border border-brandGold flex items-center justify-center text-amber-600">
+                                <i class="fa-solid fa-bolt text-xs"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ABOUT / MANIFESTO SECTION -->
+    <section id="about" class="py-24 px-6 md:px-12 relative bg-white border-y border-slate-200">
+        <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-12 gap-12 items-center">
+            <div class="md:col-span-5 space-y-6">
+                <div class="text-xs font-extrabold uppercase tracking-widest text-brandAmber">Our DNA</div>
+                <h2 class="font-syne text-4xl sm:text-5xl font-extrabold text-slate-900 leading-tight">
+                    BUILT DIFFERENT.<br>
+                    <span class="gold-gradient-text">FOR THE NEXT ERA.</span>
+                </h2>
+                <p class="text-slate-600 text-base leading-relaxed">
+                    Traditional petrol stations are relic monuments of the past—cold, noisy, and uninspiring. OCTANE Z bridges high-octane performance engineering with lifestyle lounge culture.
+                </p>
+                <div class="space-y-4 pt-2">
+                    <div class="flex items-start gap-4">
+                        <div class="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-brandAmber font-bold shrink-0">
+                            <i class="fa-solid fa-microchip"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-slate-900">Smart Dispensing Bay</h4>
+                            <p class="text-xs text-slate-500">Autonomous contactless fueling with precision digital calibration.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-4">
+                        <div class="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-brandAmber font-bold shrink-0">
+                            <i class="fa-solid fa-mug-hot"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-slate-900">Sub-Zero Chill Lounges</h4>
+                            <p class="text-xs text-slate-500">Matcha bars, fiber Wi-Fi, and acoustic soundproof pods while you refuel.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="md:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div class="p-8 rounded-2xl glass-panel glass-panel-hover">
+                    <div class="w-12 h-12 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-extrabold text-xl mb-4">01</div>
+                    <h3 class="font-syne text-xl font-bold text-slate-900 mb-2">Molecular Purity</h3>
+                    <p class="text-sm text-slate-600 leading-relaxed">Filtered down to 0.5 microns ensuring maximum horsepower and friction reduction for your engine.</p>
+                </div>
+                <div class="p-8 rounded-2xl glass-panel glass-panel-hover">
+                    <div class="w-12 h-12 rounded-xl bg-slate-900 text-brandGold flex items-center justify-center font-extrabold text-xl mb-4">02</div>
+                    <h3 class="font-syne text-xl font-bold text-slate-900 mb-2">Hyper Charging</h3>
+                    <p class="text-sm text-slate-600 leading-relaxed">350kW ultra-fast DC electric chargers powering your EV from 10% to 80% in under 12 minutes.</p>
+                </div>
+                <div class="p-8 rounded-2xl glass-panel glass-panel-hover">
+                    <div class="w-12 h-12 rounded-xl bg-amber-600 text-white flex items-center justify-center font-extrabold text-xl mb-4">03</div>
+                    <h3 class="font-syne text-xl font-bold text-slate-900 mb-2">Eco-Offset Credits</h3>
+                    <p class="text-sm text-slate-600 leading-relaxed">Every gallon filled automatically contributes to verified urban reforestation projects.</p>
+                </div>
+                <div class="p-8 rounded-2xl glass-panel glass-panel-hover">
+                    <div class="w-12 h-12 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center font-extrabold text-xl mb-4">04</div>
+                    <h3 class="font-syne text-xl font-bold text-slate-900 mb-2">OCTANE Z App</h3>
+                    <p class="text-sm text-slate-600 leading-relaxed">Tap to unlock fuel bays, order artisan drinks, and earn instant rewards points on every tank.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FUEL MATRIX / FLAVORS -->
+    <section id="flavors" class="py-24 px-6 md:px-12 bg-slate-50">
+        <div class="max-w-7xl mx-auto text-center space-y-4 mb-16">
+            <div class="text-xs font-extrabold uppercase tracking-widest text-brandAmber">High Performance Selection</div>
+            <h2 class="font-syne text-4xl sm:text-5xl font-extrabold text-slate-900">THE FUEL MATRIX</h2>
+            <p class="text-slate-600 max-w-xl mx-auto text-base">Engineered specifically for extreme performance, smoothness, and longevity.</p>
+        </div>
+
+        <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div class="p-8 rounded-3xl glass-panel glass-panel-hover flex flex-col justify-between">
+                <div>
+                    <div class="flex justify-between items-center mb-6">
+                        <span class="px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-bold">OCTANE 95</span>
+                        <i class="fa-solid fa-bolt text-amber-500 text-xl"></i>
+                    </div>
+                    <h3 class="font-syne text-2xl font-bold text-slate-900 mb-2">VIBE UNLEADED</h3>
+                    <p class="text-sm text-slate-600 mb-6">Daily street performance with active detergent additives to clean fuel injectors on the fly.</p>
+                </div>
+                <div class="pt-6 border-t border-slate-200 flex justify-between items-center">
+                    <span class="text-2xl font-extrabold text-slate-900">$3.89 <span class="text-xs text-slate-400 font-normal">/ gal</span></span>
+                    <button class="px-4 py-2 rounded-xl bg-slate-900 text-white font-bold text-xs hover:bg-brandAmber transition-colors">Details</button>
+                </div>
+            </div>
+
+            <div class="p-8 rounded-3xl glass-panel border-2 border-brandGold glass-panel-hover flex flex-col justify-between relative overflow-hidden shadow-xl">
+                <div class="absolute top-0 right-0 bg-gradient-to-l from-brandGold to-brandAmber text-slate-950 text-[10px] uppercase font-extrabold px-6 py-1 rounded-bl-xl tracking-wider">
+                    Most Popular
+                </div>
+                <div>
+                    <div class="flex justify-between items-center mb-6">
+                        <span class="px-3 py-1 rounded-full bg-amber-500 text-slate-950 text-xs font-extrabold">OCTANE 102+</span>
+                        <i class="fa-solid fa-fire text-amber-600 text-xl"></i>
+                    </div>
+                    <h3 class="font-syne text-2xl font-bold text-slate-900 mb-2">HYPER-BEAST</h3>
+                    <p class="text-sm text-slate-600 mb-6">Ultra high-octane racing specification blend for turbocharged engines requiring supreme anti-knock stability.</p>
+                </div>
+                <div class="pt-6 border-t border-slate-200 flex justify-between items-center">
+                    <span class="text-2xl font-extrabold text-brandAmber">$4.49 <span class="text-xs text-slate-400 font-normal">/ gal</span></span>
+                    <button class="px-4 py-2 rounded-xl bg-gradient-to-r from-brandYellow to-brandAmber text-slate-950 font-extrabold text-xs shadow-md">Select</button>
+                </div>
+            </div>
+
+            <div class="p-8 rounded-3xl glass-panel glass-panel-hover flex flex-col justify-between">
+                <div>
+                    <div class="flex justify-between items-center mb-6">
+                        <span class="px-3 py-1 rounded-full bg-slate-200 text-slate-800 text-xs font-bold">350 KW EV</span>
+                        <i class="fa-solid fa-charging-station text-cyan-600 text-xl"></i>
+                    </div>
+                    <h3 class="font-syne text-2xl font-bold text-slate-900 mb-2">ELECTRON VOLT</h3>
+                    <p class="text-sm text-slate-600 mb-6">100% renewable solar-backed ultra fast charging bays with liquid-cooled cables.</p>
+                </div>
+                <div class="pt-6 border-t border-slate-200 flex justify-between items-center">
+                    <span class="text-2xl font-extrabold text-slate-900">$0.32 <span class="text-xs text-slate-400 font-normal">/ kWh</span></span>
+                    <button class="px-4 py-2 rounded-xl bg-slate-900 text-white font-bold text-xs hover:bg-brandAmber transition-colors">Details</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- VIBE & RANGE CALCULATOR SECTION -->
+    <section id="calc" class="py-24 px-6 md:px-12 bg-white">
+        <div class="max-w-5xl mx-auto glass-panel p-8 md:p-12 rounded-3xl border-2 border-amber-300">
+            <div class="text-center space-y-4 mb-10">
+                <div class="text-xs font-extrabold uppercase tracking-widest text-brandAmber">Interactive Tool</div>
+                <h2 class="font-syne text-3xl sm:text-4xl font-extrabold text-slate-900">VIBE & RANGE CALCULATOR</h2>
+                <p class="text-slate-600 text-sm max-w-lg mx-auto">Calculate how far OCTANE Z hyper-fuel takes your trip.</p>
+            </div>
+
+            <div class="space-y-8">
+                <div>
+                    <div class="flex justify-between font-bold text-sm text-slate-800 mb-3">
+                        <span>Tank Size (Gallons):</span>
+                        <span id="tank-val" class="text-brandAmber font-syne text-lg">15 Gallons</span>
+                    </div>
+                    <input type="range" id="tank-slider" min="5" max="30" value="15" class="w-full h-3 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-brandGold">
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t border-slate-200 text-center">
+                    <div class="p-4 rounded-xl bg-slate-50">
+                        <div class="text-xs text-slate-500 font-bold uppercase mb-1">Standard Mileage</div>
+                        <div id="std-range" class="font-syne text-2xl font-bold text-slate-700">420 Miles</div>
+                    </div>
+                    <div class="p-4 rounded-xl bg-amber-500/10 border border-amber-400">
+                        <div class="text-xs text-brandAmber font-extrabold uppercase mb-1">OCTANE Z Range</div>
+                        <div id="octane-range" class="font-syne text-3xl font-extrabold text-brandAmber">495 Miles</div>
+                    </div>
+                    <div class="p-4 rounded-xl bg-slate-50">
+                        <div class="text-xs text-slate-500 font-bold uppercase mb-1">Urban Trees Planted</div>
+                        <div id="trees-val" class="font-syne text-2xl font-bold text-emerald-600">3.0 Trees</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- HUB LOCATOR SECTION -->
+    <section id="locator" class="py-24 px-6 md:px-12 bg-slate-50">
+        <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+            <div class="lg:col-span-5 space-y-6">
+                <div class="text-xs font-extrabold uppercase tracking-widest text-brandAmber">Find Your Hub</div>
+                <h2 class="font-syne text-4xl font-extrabold text-slate-900">ALWAYS NEARBY.</h2>
+                <p class="text-slate-600 text-sm">Find an OCTANE Z energy station equipped with superchargers, chill lounges, and fuel bays.</p>
+                
+                <div class="space-y-4">
+                    <div class="p-4 rounded-xl bg-white border border-slate-200 flex items-center justify-between">
+                        <div>
+                            <div class="font-bold text-slate-900 text-sm">Downtown Flagship Hub</div>
+                            <div class="text-xs text-slate-500">742 Evergreen Terrace, Sector 4</div>
+                        </div>
+                        <span class="px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-extrabold">OPEN 24/7</span>
+                    </div>
+                    <div class="p-4 rounded-xl bg-white border border-slate-200 flex items-center justify-between">
+                        <div>
+                            <div class="font-bold text-slate-900 text-sm">Westside SuperStation</div>
+                            <div class="text-xs text-slate-500">1098 Cyberway Blvd, Bay 12</div>
+                        </div>
+                        <span class="px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-extrabold">OPEN 24/7</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-7 h-[380px] rounded-3xl overflow-hidden glass-panel border-2 border-brandGold/40 relative flex items-center justify-center p-6 bg-slate-200">
+                <div class="absolute inset-0 bg-slate-900/10 backdrop-blur-[2px]"></div>
+                <!-- Interactive Map UI Placeholder Visual -->
+                <div class="relative z-10 text-center space-y-3">
+                    <div class="w-16 h-16 rounded-full bg-gradient-to-tr from-brandYellow to-brandAmber text-slate-950 flex items-center justify-center text-2xl mx-auto shadow-xl animate-bounce">
+                        <i class="fa-solid fa-location-dot"></i>
+                    </div>
+                    <h4 class="font-syne font-bold text-slate-900 text-lg">Interactive Hub Radar Active</h4>
+                    <p class="text-xs text-slate-600">Location permission enabled. 14 Hubs identified in your area.</p>
+                    <button class="px-6 py-2.5 rounded-full bg-slate-900 text-white font-bold text-xs hover:bg-brandAmber transition-colors shadow-md">
+                        Launch Full Map UI
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER WITH CONTINUOUS STREAMER RECEIVER RESERVOIR -->
+    <footer class="relative z-40 bg-slate-950 text-white pt-0 pb-12 overflow-hidden">
+        
+        <!-- CONTINUOUS STREAMER RECEIVER RESERVOIR (#liquid-tank) -->
+        <!-- The canvas stream terminates PRECISELY at the top edge of this container -->
+        <div id="liquid-tank" class="relative w-full h-48 bg-gradient-to-b from-amber-950/80 via-slate-950 to-slate-950 border-t-4 border-amber-400 overflow-hidden shadow-[0_-15px_40px_rgba(245,158,11,0.3)]">
+            
+            <!-- Animated Wave Graphic Layers -->
+            <div class="absolute inset-0 opacity-40">
+                <svg class="absolute top-0 left-0 w-[200%] h-full wave-layer-1" viewBox="0 0 1200 120" preserveAspectRatio="none">
+                    <path d="M0,0 C150,90 350,-40 500,50 C650,140 900,10 1200,60 L1200,120 L0,120 Z" fill="#F59E0B"></path>
+                </svg>
+                <svg class="absolute top-0 left-0 w-[200%] h-full wave-layer-2 opacity-60" viewBox="0 0 1200 120" preserveAspectRatio="none">
+                    <path d="M0,30 C200,100 450,0 600,60 C750,120 1000,20 1200,40 L1200,120 L0,120 Z" fill="#FBBF24"></path>
+                </svg>
+            </div>
+
+            <!-- Dynamic Liquid Height Fill Overlay -->
+            <div id="tank-fill" class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-amber-600 via-amber-500/80 to-amber-400/40 transition-all duration-300" style="height: 50%;"></div>
+
+            <!-- Reservoir Live HUD Badge Overlay -->
+            <div class="relative z-10 h-full flex flex-col justify-center items-center text-center px-6">
+                <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-950/80 border border-amber-400/60 text-amber-300 text-xs font-mono font-bold tracking-widest shadow-xl">
+                    <i class="fa-solid fa-glass-water text-brandGold animate-bounce"></i>
+                    <span id="live-fill-pct">LIVE RESERVOIR CAPACITY: 78.4%</span>
+                </div>
+                <h3 class="font-syne text-xl sm:text-2xl font-extrabold text-white mt-2 tracking-wider">
+                    CONTINUOUS STREAM RECEIVER TANK
+                </h3>
+                <p class="text-xs text-amber-200/80 max-w-md mt-1">Collecting hyper-refined golden motor energy dynamically as you scroll.</p>
+            </div>
+        </div>
+
+        <!-- FULL FOOTER DETAILS & LINKS GRID -->
+        <div class="max-w-7xl mx-auto px-6 md:px-12 pt-16 pb-8 border-t border-slate-800">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 mb-16">
+                
+                <!-- Col 1: Brand Info -->
+                <div class="lg:col-span-2 space-y-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brandYellow via-brandGold to-brandAmber flex items-center justify-center text-slate-950 font-syne font-extrabold text-xl shadow-md">
+                            Z
+                        </div>
+                        <span class="font-syne text-2xl font-extrabold tracking-wider text-white">OCTANE <span class="text-brandGold">Z</span></span>
+                    </div>
+                    <p class="text-slate-400 text-sm max-w-sm leading-relaxed">
+                        The world's first Gen Z lifestyle energy station brand. Combining ultra-pure racing fuel blends, high-speed EV charging, and aesthetic chill lounges.
+                    </p>
+                    
+                    <!-- Newsletter Form -->
+                    <div class="pt-2">
+                        <div class="text-xs font-bold text-amber-400 uppercase tracking-wider mb-2">Join The Inner Circle</div>
+                        <div class="flex gap-2 max-w-sm">
+                            <input type="email" placeholder="Enter your email" class="px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white focus:outline-none focus:border-brandGold w-full">
+                            <button onclick="alert('Welcome to the OCTANE Z inner circle!')" class="px-5 py-2.5 rounded-xl bg-brandGold text-slate-950 font-extrabold text-xs hover:bg-brandYellow transition-colors shrink-0">
+                                JOIN
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Col 2: Quick Links -->
+                <div>
+                    <h4 class="font-syne text-sm font-bold text-white uppercase tracking-wider mb-4 border-b border-slate-800 pb-2">Navigation</h4>
+                    <ul class="space-y-2.5 text-xs text-slate-400 font-bold">
+                        <li><a href="#about" class="hover:text-brandGold transition-colors">Our Vision & Manifesto</a></li>
+                        <li><a href="#flavors" class="hover:text-brandGold transition-colors">Fuel Matrix Selection</a></li>
+                        <li><a href="#calc" class="hover:text-brandGold transition-colors">Vibe & Range Calculator</a></li>
+                        <li><a href="#locator" class="hover:text-brandGold transition-colors">Find Energy Hubs</a></li>
+                        <li><a href="#" class="hover:text-brandGold transition-colors">OCTANE Z App Download</a></li>
+                    </ul>
+                </div>
+
+                <!-- Col 3: Station Specs -->
+                <div>
+                    <h4 class="font-syne text-sm font-bold text-white uppercase tracking-wider mb-4 border-b border-slate-800 pb-2">Hub Services</h4>
+                    <ul class="space-y-2.5 text-xs text-slate-400 font-bold">
+                        <li><span class="text-amber-400">✓</span> 350kW DC Superchargers</li>
+                        <li><span class="text-amber-400">✓</span> 20W-50 Hyper-Blend Petrol</li>
+                        <li><span class="text-amber-400">✓</span> Matcha & Nitro Cold Brew</li>
+                        <li><span class="text-amber-400">✓</span> High-Speed WiFi Pods</li>
+                        <li><span class="text-amber-400">✓</span> Autonomous Touchless Bays</li>
+                    </ul>
+                </div>
+
+                <!-- Col 4: Community & Social -->
+                <div>
+                    <h4 class="font-syne text-sm font-bold text-white uppercase tracking-wider mb-4 border-b border-slate-800 pb-2">Social Vibe</h4>
+                    <div class="flex flex-wrap gap-3 mb-4">
+                        <a href="#" class="w-9 h-9 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-300 hover:text-brandGold hover:border-brandGold transition-colors"><i class="fa-brands fa-tiktok"></i></a>
+                        <a href="#" class="w-9 h-9 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-300 hover:text-brandGold hover:border-brandGold transition-colors"><i class="fa-brands fa-instagram"></i></a>
+                        <a href="#" class="w-9 h-9 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-300 hover:text-brandGold hover:border-brandGold transition-colors"><i class="fa-brands fa-discord"></i></a>
+                        <a href="#" class="w-9 h-9 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-300 hover:text-brandGold hover:border-brandGold transition-colors"><i class="fa-brands fa-spotify"></i></a>
+                    </div>
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950 border border-emerald-800 text-emerald-400 text-[10px] font-mono">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> ALL 14 STATIONS ONLINE
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Bottom Copyright & Legal -->
+            <div class="pt-8 border-t border-slate-900 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-slate-500 font-bold">
+                <div>
+                    © 2026 OCTANE Z ENERGY CORP. ALL RIGHTS RESERVED.
+                </div>
+                <div class="flex gap-6">
+                    <a href="#" class="hover:text-slate-300 transition-colors">Privacy Policy</a>
+                    <a href="#" class="hover:text-slate-300 transition-colors">Terms of Service</a>
+                    <a href="#" class="hover:text-slate-300 transition-colors">Security</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- INTERACTIVE SCRIPT FOR STREAM POUR & CALCULATOR -->
+    <script>
+        // -------------------------------------------------------------
+        // UNBLOCKED GOLDEN PETROL STREAM CANVAS RENDERER
+        // -------------------------------------------------------------
+        const canvas = document.getElementById('fluid-canvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        let scrollY = window.scrollY;
+        window.addEventListener('scroll', () => {
+            scrollY = window.scrollY;
+            
+            // Dynamic Tank fill level based on scroll progression
+            const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+            const scrollPercent = Math.min(98, Math.max(25, Math.round((scrollY / (maxScroll || 1)) * 100)));
+            
+            const tankFill = document.getElementById('tank-fill');
+            const liveFillPct = document.getElementById('live-fill-pct');
+            
+            if (tankFill) {
+                tankFill.style.height = `${scrollPercent}%`;
+            }
+            if (liveFillPct) {
+                liveFillPct.innerText = `LIVE RESERVOIR CAPACITY: ${scrollPercent}.4%`;
+            }
+        });
+
+        let phase = 0;
+
+        function drawFluidStream() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const totalHeight = document.documentElement.scrollHeight;
+            const currentScroll = window.scrollY;
+            const maxScroll = totalHeight - window.innerHeight;
+            const progress = Math.min(1, Math.max(0, currentScroll / (maxScroll || 1)));
+
+            const centerX = canvas.width / 2;
+            
+            // Find top edge of `#liquid-tank` so stream terminates accurately
+            let endY = canvas.height;
+            const targetTank = document.getElementById('liquid-tank');
+            
+            if (targetTank) {
+                const rect = targetTank.getBoundingClientRect();
+                if (rect.top > 0) {
+                    endY = Math.min(canvas.height, rect.top + 8);
+                }
+            }
+
+            ctx.save();
+
+            // 1. OUTER GLOWING LIQUID BOUNDS
+            const outerGrad = ctx.createLinearGradient(0, 0, 0, endY);
+            outerGrad.addColorStop(0, '#FBBF24');
+            outerGrad.addColorStop(0.5, '#F59E0B');
+            outerGrad.addColorStop(1, '#D97706');
+
+            ctx.strokeStyle = outerGrad;
+            ctx.shadowColor = 'rgba(245, 158, 11, 0.75)';
+            ctx.shadowBlur = 28;
+            
+            ctx.lineWidth = 48 + Math.sin(phase * 1.5) * 8;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            ctx.beginPath();
+            const points = 35;
+            const step = endY / points;
+            
+            for (let i = 0; i <= points; i++) {
+                const y = i * step;
+                const wave = Math.sin(i * 0.2 + phase + progress * 6) * 40;
+                const x = centerX + wave;
+
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            ctx.stroke();
+
+            // 2. INNER VIBRANT LIQUID CORE
+            ctx.lineWidth = 24 + Math.sin(phase) * 5;
+            ctx.strokeStyle = '#FEF08A';
+            ctx.shadowColor = 'rgba(254, 240, 138, 0.9)';
+            ctx.shadowBlur = 12;
+            ctx.stroke();
+
+            // 3. HIGHLIGHT STREAKS
+            ctx.lineWidth = 7;
+            ctx.strokeStyle = '#FFFFFF';
+            ctx.shadowBlur = 4;
+            ctx.stroke();
+
+            // 4. DROPLETS ALONG THE STREAM
+            for (let p = 0; p < 14; p++) {
+                const particleY = (endY * ((p * 0.07 + phase * 0.3) % 1));
+                const waveIndex = (particleY / step);
+                const particleX = centerX + Math.sin(waveIndex * 0.2 + phase + progress * 6) * 40 + Math.sin(p * 3.5) * 22;
+                
+                ctx.beginPath();
+                ctx.arc(particleX, particleY, 4 + (p % 4), 0, Math.PI * 2);
+                ctx.fillStyle = (p % 2 === 0) ? '#FBBF24' : '#FEF08A';
+                ctx.fill();
+            }
+
+            // 5. TERMINATION SPLASH RIPPLES AT THE RESERVOIR TOP
+            if (targetTank) {
+                const rect = targetTank.getBoundingClientRect();
+                if (rect.top < canvas.height && rect.top > 0) {
+                    const impactX = centerX + Math.sin(points * 0.2 + phase + progress * 6) * 40;
+                    const impactY = rect.top + 8;
+
+                    // Splash Impact Rings
+                    ctx.beginPath();
+                    ctx.ellipse(impactX, impactY, 65 + Math.sin(phase * 4) * 18, 12 + Math.cos(phase * 4) * 4, 0, 0, Math.PI * 2);
+                    ctx.strokeStyle = '#FEF08A';
+                    ctx.lineWidth = 4;
+                    ctx.shadowBlur = 18;
+                    ctx.shadowColor = '#FBBF24';
+                    ctx.stroke();
+
+                    // Splash Particles
+                    for (let s = 0; s < 6; s++) {
+                        const splashAngle = (s / 6) * Math.PI + Math.sin(phase) * 0.2;
+                        const splashDist = 28 + Math.sin(phase * 3 + s) * 18;
+                        const sx = impactX + Math.cos(splashAngle) * splashDist;
+                        const sy = impactY - Math.abs(Math.sin(splashAngle)) * splashDist * 0.5;
+
+                        ctx.beginPath();
+                        ctx.arc(sx, sy, 3 + (s % 3), 0, Math.PI * 2);
+                        ctx.fillStyle = '#FBBF24';
+                        ctx.fill();
+                    }
+                }
+            }
+
+            ctx.restore();
+
+            phase += 0.035;
+            requestAnimationFrame(drawFluidStream);
+        }
+
+        // -------------------------------------------------------------
+        // VIBE & RANGE CALCULATOR LOGIC
+        // -------------------------------------------------------------
+        const tankSlider = document.getElementById('tank-slider');
+        const tankVal = document.getElementById('tank-val');
+        const stdRange = document.getElementById('std-range');
+        const octaneRange = document.getElementById('octane-range');
+        const treesVal = document.getElementById('trees-val');
+
+        if (tankSlider) {
+            tankSlider.addEventListener('input', (e) => {
+                const gallons = parseInt(e.target.value);
+                tankVal.innerText = `${gallons} Gallons`;
+                
+                const std = gallons * 28;
+                const octane = Math.round(gallons * 33);
+                const trees = (gallons * 0.2).toFixed(1);
+
+                stdRange.innerText = `${std} Miles`;
+                octaneRange.innerText = `${octane} Miles`;
+                treesVal.innerText = `${trees} Trees`;
+            });
+        }
+
+        // Initialize Canvas Loop
+        window.onload = function() {
+            drawFluidStream();
+        };
+    </script>
+</body>
+</html>
